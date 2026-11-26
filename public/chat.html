@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copper Grill assistant · test chat</title>
+<style>
+  :root { --bg:#efeae2; --head:#075e54; --me:#d9fdd3; --them:#fff; --ink:#111b21; --muted:#667781; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#d1d7db; color:var(--ink); }
+  .app { max-width:520px; height:100vh; margin:0 auto; display:flex; flex-direction:column; background:var(--bg); }
+  header { background:var(--head); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; }
+  .avatar { width:40px; height:40px; border-radius:50%; background:#b87333; display:grid; place-items:center; font-weight:700; }
+  header .who { flex:1; } header .name { font-weight:600; } header .sub { font-size:12px; opacity:.85; }
+  header button { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:12px; }
+  .as { background:#fff8e1; font-size:13px; padding:8px 16px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #e9e2c9; }
+  .as input { flex:1; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px; }
+  #log { flex:1; overflow-y:auto; padding:16px 12px; display:flex; flex-direction:column; gap:6px; }
+  .msg { max-width:80%; padding:8px 10px 6px; border-radius:8px; white-space:pre-wrap; line-height:1.35; font-size:15px; box-shadow:0 1px .5px rgba(0,0,0,.13); overflow-wrap:anywhere; }
+  .me { align-self:flex-end; background:var(--me); } .them { align-self:flex-start; background:var(--them); }
+  .meta { font-size:11px; color:var(--muted); text-align:right; margin-top:2px; }
+  .typing { align-self:flex-start; color:var(--muted); font-size:13px; font-style:italic; padding:4px 8px; }
+  form { display:flex; gap:8px; padding:10px; background:#f0f2f5; }
+  form input { flex:1; padding:12px 14px; border:none; border-radius:22px; font-size:15px; }
+  form button { width:46px; height:46px; border:none; border-radius:50%; background:#00a884; color:#fff; font-size:18px; cursor:pointer; }
+  form button:disabled { opacity:.5; }
+  .note { text-align:center; font-size:12px; color:var(--muted); background:#fff5c4; align-self:center; padding:4px 10px; border-radius:6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="avatar">CG</div>
+    <div class="who"><div class="name">The Copper Grill</div><div class="sub">Test chat · works like WhatsApp</div></div>
+    <button id="reset" type="button" title="Forget this conversation">New chat</button>
+  </header>
+  <div class="as"><label for="phone">Chatting as phone</label><input id="phone" value="0771234567" autocomplete="off"></div>
+  <div id="log"><div class="note">Messages here go to the real assistant and booking system on this laptop.</div></div>
+  <form id="send"><input id="text" placeholder="Type a message, e.g. Table for 4 on Saturday at 7?" autocomplete="off" autofocus><button id="go" aria-label="Send">➤</button></form>
+</div>
+<script>
+  const log = document.getElementById("log"), text = document.getElementById("text"), go = document.getElementById("go"), phone = document.getElementById("phone");
+  const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  function bubble(words, who) {
+    const el = document.createElement("div");
+    el.className = "msg " + who;
+    el.textContent = words;
+    const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = time();
+    el.appendChild(meta); log.appendChild(el); log.scrollTop = log.scrollHeight;
+  }
+  document.getElementById("send").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const words = text.value.trim(); if (!words) return;
+    bubble(words, "me"); text.value = ""; go.disabled = true;
+    const typing = document.createElement("div"); typing.className = "typing"; typing.textContent = "typing…"; log.appendChild(typing); log.scrollTop = log.scrollHeight;
+    try {
+      const r = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.value, text: words }) });
+      const data = await r.json();
+      bubble(data.reply || "(no reply)", "them");
+    } catch { bubble("Couldn't reach the assistant. Is it running?", "them"); }
+    typing.remove(); go.disabled = false; text.focus();
+  });
+  document.getElementById("reset").addEventListener("click", async () => {
+    await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.value, reset: true }) });
+    log.innerHTML = '<div class="note">New conversation started.</div>';
+  });
+</script>
+</body>
+</html>

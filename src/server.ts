@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import Anthropic from "@anthropic-ai/sdk";
 import { type AgentDeps, Conversations, reply } from "./agent.ts";
 import { grillClient } from "./grill.ts";
-import { incomingMessages, sendText, type WhatsAppConfig } from "./whatsapp.ts";
+import { incomingMessages, sendText, toWhatsAppNumber, type WhatsAppConfig } from "./whatsapp.ts";
 
 // The assistant's web server:
 //   GET  /         a test chat page that works like WhatsApp, for trying it on your laptop
@@ -60,7 +60,11 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/chat") {
-      const { phone, text, reset } = JSON.parse(await readBody(req)) as { phone?: string; text?: string; reset?: boolean };
+      const body = JSON.parse(await readBody(req)) as { phone?: string; text?: string; reset?: boolean };
+      const { text, reset } = body;
+      // Real WhatsApp reports the sender in full international digits (263771234567),
+      // the only form the booking API accepts, so the test chat converts to the same.
+      const phone = toWhatsAppNumber(body.phone ?? "");
       if (!phone) return send(res, 400, JSON.stringify({ error: "phone" }));
       if (reset) {
         conversations.clear(phone);

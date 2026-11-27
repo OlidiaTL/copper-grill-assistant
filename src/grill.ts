@@ -33,7 +33,8 @@ export type Grill = {
   availability(date: string, party: number): Promise<GrillReply>;
   book(booking: Record<string, unknown>): Promise<GrillReply>;
   bookingsFor(phone: string): Promise<GrillReply<{ bookings?: Booking[] }>>;
-  cancel(token: string): Promise<GrillReply>;
+  /** `phone` is the sender's number: the site cancels a booking only for the number it was made with. */
+  cancel(token: string, phone: string): Promise<GrillReply>;
   enquiry(enquiry: Record<string, unknown>): Promise<GrillReply>;
   reminders(date: string): Promise<GrillReply<{ reminders?: Reminder[] }>>;
 };
@@ -57,7 +58,7 @@ export function grillClient(baseUrl: string, apiKey: string): Grill {
     availability: (date, party) => call(`/availability?date=${q(date)}&party=${q(String(party))}`),
     book: (booking) => call("/bookings", { method: "POST", body: JSON.stringify(booking) }),
     bookingsFor: (phone) => call(`/bookings?phone=${q(phone)}`),
-    cancel: (token) => call(`/bookings/${q(token)}`, { method: "DELETE" }),
+    cancel: (token, phone) => call(`/bookings/${q(token)}?phone=${q(phone)}`, { method: "DELETE" }),
     enquiry: (enquiry) => call("/enquiries", { method: "POST", body: JSON.stringify(enquiry) }),
     reminders: (date) => call(`/reminders?date=${q(date)}`),
   };

@@ -132,7 +132,7 @@ export async function runTool(
       if (!mine.body.bookings?.some((b) => b.token === token)) {
         return { content: JSON.stringify({ error: "not_yours", message: "That isn't one of this guest's upcoming bookings." }), isError: true };
       }
-      return reply(await grill.cancel(token));
+      return reply(await grill.cancel(token, phone));
     }
 
     case "send_group_enquiry":

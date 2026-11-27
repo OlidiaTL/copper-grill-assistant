@@ -57,7 +57,7 @@ describe("reply", () => {
       [use("t1", "check_availability", { date: "2026-11-28", party_size: 4 })],
       [say("We have 18:30 or 19:00 on Saturday. Which would you like?")],
     ]);
-    const answer = await reply({ model, modelName: "m", grill }, new Conversations(), "0771234567", "Table for 4 Saturday?");
+    const answer = await reply({ model, modelName: "m", grill }, new Conversations(), "263771234567", "Table for 4 Saturday?");
 
     expect(answer).toBe("We have 18:30 or 19:00 on Saturday. Which would you like?");
     expect(calls).toEqual([{ method: "availability", args: ["2026-11-28", 4] }]);
@@ -70,9 +70,9 @@ describe("reply", () => {
     const { grill } = fakeGrill();
     const { model, requests } = scriptedModel([[say("Hi!")], [say("Sure.")], [say("Hello!")]]);
     const conversations = new Conversations();
-    await reply({ model, modelName: "m", grill }, conversations, "0771111111", "Hello");
-    await reply({ model, modelName: "m", grill }, conversations, "0771111111", "Book a table");
-    await reply({ model, modelName: "m", grill }, conversations, "0772222222", "Hi");
+    await reply({ model, modelName: "m", grill }, conversations, "263771111111", "Hello");
+    await reply({ model, modelName: "m", grill }, conversations, "263771111111", "Book a table");
+    await reply({ model, modelName: "m", grill }, conversations, "263772222222", "Hi");
 
     expect(requests[1].messages).toHaveLength(3); // hello, hi!, book a table
     expect(requests[2].messages).toHaveLength(1); // a different guest starts fresh
@@ -82,7 +82,7 @@ describe("reply", () => {
     const { grill } = fakeGrill();
     const loop = Array.from({ length: 20 }, (_, i) => [use(`t${i}`, "get_restaurant_info", {})]);
     const { model } = scriptedModel(loop);
-    const answer = await reply({ model, modelName: "m", grill }, new Conversations(), "077", "?");
+    const answer = await reply({ model, modelName: "m", grill }, new Conversations(), "263771234567", "?");
     expect(answer).toMatch(/team member/);
   });
 
@@ -93,7 +93,7 @@ describe("reply", () => {
       [use("t1", "check_availability", { date: "2026-11-28", party_size: 2 })],
       [say("Sorry, I can't check right now.")],
     ]);
-    await reply({ model, modelName: "m", grill }, new Conversations(), "077", "Table?");
+    await reply({ model, modelName: "m", grill }, new Conversations(), "263771234567", "Table?");
     expect(JSON.stringify(requests[1].messages.at(-1)!.content)).toContain("unreachable");
   });
 });
@@ -101,27 +101,27 @@ describe("reply", () => {
 describe("runTool safety", () => {
   test("books with the number the guest is messaging from, whatever the model says", async () => {
     const { grill, calls } = fakeGrill();
-    await runTool(grill, "0771234567", "create_booking", {
-      date: "2026-11-28", time: "19:00", party_size: 4, guest_name: "Nomsa", whatsapp_consent: true, guestPhone: "0789999999",
+    await runTool(grill, "263771234567", "create_booking", {
+      date: "2026-11-28", time: "19:00", party_size: 4, guest_name: "Nomsa", whatsapp_consent: true, guestPhone: "263789999999",
     });
-    expect(calls[0].args[0]).toMatchObject({ guestPhone: "0771234567", whatsappConsent: true });
+    expect(calls[0].args[0]).toMatchObject({ guestPhone: "263771234567", whatsappConsent: true });
   });
 
   test("consent is only recorded when the model passes an explicit true", async () => {
     const { grill, calls } = fakeGrill();
-    await runTool(grill, "077", "create_booking", { date: "d", time: "t", party_size: 2, guest_name: "N", whatsapp_consent: "yes" });
+    await runTool(grill, "263771234567", "create_booking", { date: "d", time: "t", party_size: 2, guest_name: "N", whatsapp_consent: "yes" });
     expect(calls[0].args[0]).toMatchObject({ whatsappConsent: false });
   });
 
   test("a guest can cancel only their own booking", async () => {
-    const { grill, calls } = fakeGrill({ "0771111111": ["mine"] });
-    const theirs = await runTool(grill, "0771111111", "cancel_booking", { token: "someone-elses" });
+    const { grill, calls } = fakeGrill({ "263771111111": ["mine"] });
+    const theirs = await runTool(grill, "263771111111", "cancel_booking", { token: "someone-elses" });
     expect(theirs.isError).toBe(true);
     expect(calls.some((c) => c.method === "cancel")).toBe(false);
 
-    const mine = await runTool(grill, "0771111111", "cancel_booking", { token: "mine" });
+    const mine = await runTool(grill, "263771111111", "cancel_booking", { token: "mine" });
     expect(mine.isError).toBe(false);
-    expect(calls.filter((c) => c.method === "cancel")).toEqual([{ method: "cancel", args: ["mine"] }]);
+    expect(calls.filter((c) => c.method === "cancel")).toEqual([{ method: "cancel", args: ["mine", "263771111111"] }]);
   });
 });
 
